@@ -127,8 +127,11 @@ class TelegramReminder:
         for reminder in db.get_reminders(self.db_engine, self.timezone, False):
             freq_str = '' if reminder.frequency == None else reminder.frequency
             time_str = reminder.datetime.strftime('%d.%m.%y %H:%M')
+           
             button_text = f'{reminder.text} {time_str} {freq_str}'
-            callback_data='REMINDER;' + str(reminder.id) + ';' + str(reminder.text)
+            reccuring = reminder.frequency != None
+            callback_data = f'REMINDER;{reminder.id};{reminder.text};{int(reccuring)}'
+
             button = InlineKeyboardButton(button_text, callback_data=callback_data)
             keyboard.append([button])    
         if len(keyboard):
@@ -144,13 +147,14 @@ class TelegramReminder:
         chat_id = update.callback_query.from_user.id
         reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
-        reminder_id = int(reminder_data[0])
+        reminder_id = reminder_data[0]
         reminder_text = reminder_data[1]
+        reccuring = reminder_data[2]
 
-        callback_data = 'MOVE;' + str(reminder_id) + ';' + str(reminder_text)
+        callback_data = f'MOVE;{reminder_id};{reminder_text};{reccuring}'
         button_move = InlineKeyboardButton('Изменить время', callback_data=callback_data)
 
-        button_del = InlineKeyboardButton('Удалить', callback_data='DEL;'+ str(reminder_id))
+        button_del = InlineKeyboardButton('Удалить', callback_data='DEL;'+ reminder_id)
 
         reply_markup = InlineKeyboardMarkup([[button_move, button_del]])
 
@@ -206,8 +210,11 @@ class TelegramReminder:
 
         reminder_id = int(reminder_data[0])
         reminder_text = reminder_data[1]
+        reccuring = reminder_data[2]
 
-        db.delete_reminder(self.db_engine, reminder_id)
+        db.clear_user_input(self.db_engine, chat_id)
+        if reccuring =='0':
+            db.delete_reminder(self.db_engine, reminder_id)
 
         self._process_input_data(bot, chat_id, reminder_text)
 
@@ -222,14 +229,11 @@ class TelegramReminder:
 
     def _send_reminders(self, bot, update):
         for reminder in db.get_reminders(self.db_engine, self.timezone):
-
             reccuring = reminder.frequency != None
-            if reccuring:
-                reply_markup = None    
-            else:
-                callback_data = 'MOVE;' + str(reminder.id) + ';' + str(reminder.text)
-                button = InlineKeyboardButton('Отложить', callback_data=callback_data)
-                reply_markup = InlineKeyboardMarkup([[button]])
+           
+            callback_data = f'MOVE;{reminder.id};{reminder.text};{int(reccuring)}'
+            button = InlineKeyboardButton('Отложить', callback_data=callback_data)
+            reply_markup = InlineKeyboardMarkup([[button]])
 
             bot.send_message(chat_id=reminder.chat_id, text=reminder.text, reply_markup=reply_markup)
 
@@ -241,12 +245,3 @@ class TelegramReminder:
 
     def run(self):
         self.updater.start_polling()
-
-
-
-
-
-
-
-
-
