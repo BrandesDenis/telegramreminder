@@ -18,22 +18,6 @@ def create_calendar(year=None, month=None):
     ignore_callback = create_callback_data(action="IGNORE")
 
     keyboard = []
-
-    #today and tomorrow
-    row = []
-
-    today_callback = create_callback_data("DAY", year, month, day)
-    row.append(InlineKeyboardButton('today', callback_data=today_callback))
-
-    tomorrow = now + datetime.timedelta(days=1)
-    tomorrow_callback = create_callback_data("DAY", tomorrow.year, tomorrow.month, tomorrow.day)
-    row.append(InlineKeyboardButton('tomorrow', callback_data=tomorrow_callback))
-
-    aftertomorrow = now + datetime.timedelta(days=2)
-    aftertomorrow_callback = create_callback_data("DAY", aftertomorrow.year, aftertomorrow.month, aftertomorrow.day)
-    row.append(InlineKeyboardButton('after tom', callback_data=aftertomorrow_callback))
-
-    keyboard.append(row)
     
     #month and year
     row = []
@@ -58,9 +42,8 @@ def create_calendar(year=None, month=None):
                             callback_data=create_callback_data("DAY", year, month, day)))
         keyboard.append(row)
 
-    #Last row - Buttons
+    #Buttons
     row = []
-
     prev_callback = create_callback_data("PREV-MONTH", year, month, day)
     row.append(InlineKeyboardButton("<", callback_data=prev_callback))
 
@@ -68,6 +51,21 @@ def create_calendar(year=None, month=None):
 
     next_callback = create_callback_data("NEXT-MONTH", year, month, day)
     row.append(InlineKeyboardButton(">", callback_data=next_callback))
+
+    keyboard.append(row)
+
+    #today, tomorrow, aftertomorrow
+    row = []
+    today_callback = create_callback_data("DAY", year, month, day)
+    row.append(InlineKeyboardButton('today', callback_data=today_callback))
+
+    tomorrow = now + datetime.timedelta(days=1)
+    tomorrow_callback = create_callback_data("DAY", tomorrow.year, tomorrow.month, tomorrow.day)
+    row.append(InlineKeyboardButton('tomorrow', callback_data=tomorrow_callback))
+
+    aftertomorrow = now + datetime.timedelta(days=2)
+    aftertomorrow_callback = create_callback_data("DAY", aftertomorrow.year, aftertomorrow.month, aftertomorrow.day)
+    row.append(InlineKeyboardButton('after tom', callback_data=aftertomorrow_callback))
 
     keyboard.append(row)
 
