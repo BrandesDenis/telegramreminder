@@ -6,13 +6,12 @@ from telegram.ext import Updater, CallbackQueryHandler, MessageHandler, Filters,
 
 '''
 TODO
-тут в репозиторий!
-разовый перенос периодических
-json для callback_data
-список задач утром!
-базовая клава при команде старт!
+разовый перенос периодических - сейчас вообще теряется периодичность!
 откладывание на час и тд...
-настройки пользователя - выбор языка
+базовая клава при команде старт + описание бота
+настройки пользователя - выбор языка, список задач утром
+PEP
+Нормальная установка из гита
 '''
 
 
@@ -89,12 +88,18 @@ class TelegramReminder:
             ])
 
         return reply_markup
+    
+    @staticmethod
+    def _get_callback_data(data_str):
+        sep_position = data_str.find(';')
+        data = data_str[sep_position+1:]
+        return data.split(';')
 
     def _new_reminder_action(self, bot, update):
         chat_id = update.callback_query.from_user.id
-        reminder_data = update.callback_query.data.replace('NEW_REMINDER;', '')
+        reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
-        if reminder_data == 'RECC':
+        if reminder_data[0] == 'RECC':
             button_day = InlineKeyboardButton('Ежедневно', callback_data='RECCURING;DAY')
             button_week = InlineKeyboardButton('Еженедельно', callback_data='RECCURING;WEEK')
             button_month = InlineKeyboardButton('Ежемесячно', callback_data='RECCURING;MONTH')
@@ -137,7 +142,7 @@ class TelegramReminder:
 
     def _reminder_actions(self, bot, update):
         chat_id = update.callback_query.from_user.id
-        reminder_data = update.callback_query.data.replace('REMINDER;', '').split(';')
+        reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
         reminder_id = int(reminder_data[0])
         reminder_text = reminder_data[1]
@@ -197,7 +202,7 @@ class TelegramReminder:
 
     def _move_reminder(self, bot, update):
         chat_id = update.callback_query.from_user.id
-        reminder_data = update.callback_query.data.replace('MOVE;', '').split(';')
+        reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
         reminder_id = int(reminder_data[0])
         reminder_text = reminder_data[1]
