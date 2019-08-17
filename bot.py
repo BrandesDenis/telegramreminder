@@ -10,6 +10,7 @@ TODO
 ограничение по дате для календяря
 кнопки пустые для разделения клавы при выводе списка
 базовая клава при команде старт + описание бота
+список задач утром
 настройки пользователя - выбор языка, список задач утром
 PEP
 Нормальная установка из гита
@@ -37,6 +38,9 @@ class TelegramReminder:
         self.db_engine = db.open_database(db_url)
 
     def _add_handlers(self):
+        start = MessageHandler('start', self._start)
+        self.dispatcher.add_handler(start)
+
         cancel = RegexHandler(r'^\s*Отмена\s*', self._cancel)
         self.dispatcher.add_handler(cancel)
 
@@ -95,6 +99,14 @@ class TelegramReminder:
         sep_position = data_str.find(';')
         data = data_str[sep_position+1:]
         return data.split(';')
+    
+    def _start(self, bot, update):
+        chat_id = update.message.chat_id
+        text =  '''Привет! Я бот для нопоминаний. Я умею создавать разовые 
+        и повторяющиеся напоминания, а так же высылать утром список дел на день!'''
+        reply_markup = TelegramReminder._get_default_keyboard()
+
+        context.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
 
     def _new_reminder_action(self, bot, update):
         chat_id = update.callback_query.from_user.id

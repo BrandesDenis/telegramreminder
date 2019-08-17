@@ -13,7 +13,12 @@ def create_calendar(year=None, month=None):
         year = now.year
     if month == None:
         month = now.month
-    day = now.day
+
+    curr_month = False
+    if year == now.year and month == now.month:
+        curr_month = True
+
+    now_day = now.day
 
     ignore_callback = create_callback_data(action="IGNORE")
 
@@ -34,13 +39,16 @@ def create_calendar(year=None, month=None):
     my_calendar = calendar.monthcalendar(year, month)
     for week in my_calendar:
         row = []
+        week_has_day = False
         for day in week:
-            if day == 0:
+            if (curr_month and day < now_day) or day == 0:
                 row.append(InlineKeyboardButton(" ", callback_data=ignore_callback))
             else:
+                week_has_day = True
                 row.append(InlineKeyboardButton(day,
                             callback_data=create_callback_data("DAY", year, month, day)))
-        keyboard.append(row)
+        if week_has_day:
+            keyboard.append(row)
 
     #Buttons
     row = []
@@ -56,7 +64,7 @@ def create_calendar(year=None, month=None):
 
     #today, tomorrow, aftertomorrow
     row = []
-    today_callback = create_callback_data("DAY", year, month, day)
+    today_callback = create_callback_data("DAY", year, month, now_day)
     row.append(InlineKeyboardButton('today', callback_data=today_callback))
 
     tomorrow = now + datetime.timedelta(days=1)
@@ -79,7 +87,10 @@ def process_selection(bot, update):
     query = update.callback_query
     (action, year, month, day) = query.data.split(';')
 
-    curr_month = datetime.datetime(int(year), int(month), 1)
+    selected_month = datetime.datetime(int(year), int(month), 1)
+
+    now = datetime.datetime.now()
+    curr_month = datetime.datetime(int(now.year), int(now.month), 1)
 
     if action == "IGNORE":
         bot.answer_callback_query(callback_query_id= query.id)
@@ -90,13 +101,14 @@ def process_selection(bot, update):
         day_selected = True
         res_data = datetime.datetime(int(year), int(month), int(day))
     elif action == "PREV-MONTH":
-        prev_month = curr_month - datetime.timedelta(days=1)
-        bot.edit_message_text(text=query.message.text,
-            chat_id=query.message.chat_id,
-            message_id=query.message.message_id,
-            reply_markup=create_calendar(int(prev_month.year),int(prev_month.month)))
+        prev_month = selected_month - datetime.timedelta(days=1)
+        if prev_month>= curr_month:
+            bot.edit_message_text(text=query.message.text,
+                chat_id=query.message.chat_id,
+                message_id=query.message.message_id,
+                reply_markup=create_calendar(int(prev_month.year),int(prev_month.month)))
     elif action == "NEXT-MONTH":
-        next_month = curr_month + datetime.timedelta(days=31)
+        next_month = selected_month + datetime.timedelta(days=31)
         bot.edit_message_text(text=query.message.text,
             chat_id=query.message.chat_id,
             message_id=query.message.message_id,
