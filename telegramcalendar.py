@@ -1,6 +1,6 @@
 import datetime
 import calendar
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def create_callback_data(action, year=0, month=0, day=0):

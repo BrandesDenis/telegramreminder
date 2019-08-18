@@ -2,7 +2,7 @@ import pytz
 import datetime
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, Date, DateTime
+from sqlalchemy import Column, Integer, String, Date, DateTime, Time
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -18,11 +18,11 @@ class UserInput(Base):
     date = Column(Date)
     frequency = Column(String)
     
-    def __init__(self, chat_id, text=None, date=None, frequency=None):
+    def __init__(self, chat_id, **kwargs):
         self.chat_id = chat_id
-        self.text = text
-        self.date = date
-        self.frequency = frequency
+        self.text = kwargs.get('text')
+        self.date = kwargs.get('date')
+        self.frequency = kwargs.get('frequency')
 
     def __repr__(self):
         return f'<UserInput({self.chat_id}, {self.text}, {self.date})>'
@@ -45,6 +45,24 @@ class Reminder(Base):
 
     def __repr__(self):
         return f'<UserInput({self.chat_id}, {self.text}, {self.date}, {self.time})>'
+
+
+class UserSettings(Base):
+
+    __tablename__ = 'user_settings'
+    chat_id = Column(Integer, primary_key=True)
+    language = Column(String)
+    timezone = Column(String)
+    send_morning_list = Column(Time)
+    
+    def __init__(self, chat_id, **kwargs):
+        self.chat_id = chat_id
+        self.language = kwargs.get('language')
+        self.timezone = kwargs.get('timezone')
+        self.send_morning_list = kwargs.get('send_morning_list')
+
+    def __repr__(self):
+        return f'<UserSettings({self.chat_id}, {self.timezone}, {self.language}, {self.send_morning_list})>'
 
 
 def open_database(db_url):

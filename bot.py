@@ -6,12 +6,11 @@ from telegram.ext import Updater, CallbackQueryHandler, MessageHandler, Filters,
 
 '''
 TODO
-откладывание на час и тд...
-ограничение по дате для календяря
 кнопки пустые для разделения клавы при выводе списка
-базовая клава при команде старт + описание бота
 список задач утром
 настройки пользователя - выбор языка, список задач утром
+часовой пояс должен быть в настройках юзера!
+картинки в кнопках!
 PEP
 Нормальная установка из гита
 '''
@@ -47,6 +46,14 @@ class TelegramReminder:
         menu = RegexHandler(r'^\s*Меню\s*', self._menu)
         self.dispatcher.add_handler(menu)
      
+        settings = CallbackQueryHandler(self._settings,
+                                                pattern=r'^GETSETTINGS;.*')
+        self.dispatcher.add_handler(settings)
+
+        settings_action = CallbackQueryHandler(self._settings_action,
+                                                pattern=r'^SETTINGS;.*')
+        self.dispatcher.add_handler(settings_action)
+        
         new_reminder_action = CallbackQueryHandler(self._new_reminder_action,
                                                 pattern=r'^NEW_REMINDER;.*')
         self.dispatcher.add_handler(new_reminder_action)
@@ -106,8 +113,49 @@ class TelegramReminder:
         и повторяющиеся напоминания, а так же высылать утром список дел на день!'''
         reply_markup = TelegramReminder._get_default_keyboard()
 
-        context.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
+        button_settings = InlineKeyboardButton('Настройки', callback_data='GETSETTINGS;')
+        reply_markup.append([button_settings])
 
+        bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
+
+    def _settings(self, bot, update):
+        chat_id = update.callback_query.from_user.id
+        
+        button_language = InlineKeyboardButton('Язые', callback_data='SETTINGS;LANG')
+        button_timezone = InlineKeyboardButton('Часовой пояс', callback_data='SETTINGS;TIMEZONE')
+        button_send_morning = InlineKeyboardButton('Отправка списка напоминаний на день утром',
+                                                    callback_data='SETTINGS;SENDMORNING')
+
+        reply_markup = InlineKeyboardMarkup([
+            [button_timezone],
+            [button_timezone],
+            [button_send_morning],
+            ])
+
+        bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
+
+    def _settings_action(self, bot, update):
+        chat_id = update.callback_query.from_user.id
+        reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
+
+        settings_name = reminder_data[0]
+        if len(reminder_data) == 1:
+            if settings_name == 'LANG':
+                pass
+            elif settings_name == 'TIMEZONE':
+                pass
+            elif settings_name == 'SENDMORNING':
+                pass
+        else:
+            settings_value = reminder_data[0]
+
+            if settings_name == 'LANG':
+                # set_user_settings(lang = settings_value)
+            elif settings_name == 'TIMEZONE':
+                # set_user_settings(lang = settings_value)
+            elif settings_name == 'SENDMORNING':
+                pass 
+    
     def _new_reminder_action(self, bot, update):
         chat_id = update.callback_query.from_user.id
         reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
