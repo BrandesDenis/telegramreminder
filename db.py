@@ -227,3 +227,17 @@ def move_reccuring_reminder(engine, id):
         reminder.datetime += timedelta
 
         session_commit(session)
+
+
+def set_user_settings(engine, chat_id, **kwargs):
+    session = get_session(engine)
+
+    user_settings = session.query(UserSettings).filter_by(chat_id=chat_id).first()
+    if user_settings == None:
+        user_settings = UserSettings(chat_id=chat_id)
+        session.add(user_settings)
+
+    for key in kwargs:
+        setattr(user_settings, key, kwargs['key'])
+
+    session_commit(session)

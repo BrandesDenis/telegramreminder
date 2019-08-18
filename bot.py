@@ -10,6 +10,8 @@ TODO
 список задач утром
 настройки пользователя - выбор языка, список задач утром
 часовой пояс должен быть в настройках юзера!
+язык через gettext!
+мб в модуле db разнести все по статическим методам?
 картинки в кнопках!
 PEP
 Нормальная установка из гита
@@ -150,9 +152,9 @@ class TelegramReminder:
             settings_value = reminder_data[0]
 
             if settings_name == 'LANG':
-                # set_user_settings(lang = settings_value)
+                db.set_user_settings(language = settings_value)
             elif settings_name == 'TIMEZONE':
-                # set_user_settings(lang = settings_value)
+                db.set_user_settings(timezone = settings_value)
             elif settings_name == 'SENDMORNING':
                 pass 
     
