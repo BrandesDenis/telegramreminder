@@ -210,7 +210,7 @@ class TelegramReminder:
             keyboard.append([button])    
         if len(keyboard):
             reply_markup = InlineKeyboardMarkup(keyboard)
-            reply_text = translate('remindersList', lang),
+            reply_text = translate('remindersList', lang)
         else:
             reply_text = translate('remindersListEmpty', lang)
             reply_markup = self._get_default_keyboard(chat_id)
