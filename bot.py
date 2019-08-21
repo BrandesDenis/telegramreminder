@@ -1,21 +1,9 @@
+import pytz
 from . import db
 from . import telegramcalendar
-import pytz
+from .language import translate
 from telegram import  ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CallbackQueryHandler, MessageHandler, Filters, RegexHandler, CommandHandler
-
-
-'''
-TODO
-кнопки пустые для разделения клавы при выводе списка
-язык через gettext!
-мб в модуле db разнести все по статическим методам?
-ожидания на кнопках!
-нормально убирать клаву
-Изменение времени повторяющихся событий из формы списка!
-PEP
-Нормальная установка из гита
-'''
 
 
 class TelegramReminder:
@@ -41,10 +29,10 @@ class TelegramReminder:
         start = CommandHandler('start', self._start)
         self.dispatcher.add_handler(start)
 
-        cancel = RegexHandler(r'^\s*Отмена\s*', self._cancel)
+        cancel = RegexHandler(r'^\s*(?:Отмена|Cancel)\s*', self._cancel)
         self.dispatcher.add_handler(cancel)
 
-        menu = RegexHandler(r'^\s*Меню\s*', self._menu)
+        menu = RegexHandler(r'^\s*(?:Меню|Menu)\s*', self._menu)
         self.dispatcher.add_handler(menu)
      
         settings = CallbackQueryHandler(self._settings,
@@ -87,12 +75,13 @@ class TelegramReminder:
         process_message = MessageHandler(Filters.text, self._process_message)
         self.dispatcher.add_handler(process_message)
 
-    @staticmethod
-    def _get_default_keyboard():
+    def _get_default_keyboard(self, chat_id):
 
-        button_new_reminder = InlineKeyboardButton('Новое напоминание 🕭', callback_data='NEW_REMINDER;')
-        button_new_recc_reminder = InlineKeyboardButton('Повторяющееся напоминание ♲', callback_data='NEW_REMINDER;RECC')
-        button_reminders_list = InlineKeyboardButton('Список напоминаний 🗓', callback_data='REMINDER_LIST;')
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
+
+        button_new_reminder = InlineKeyboardButton(translate('newReminder', lang) + ' 🕭', callback_data='NEW_REMINDER;')
+        button_new_recc_reminder = InlineKeyboardButton(translate('newRecReminder', lang) + ' ♲', callback_data='NEW_REMINDER;RECC')
+        button_reminders_list = InlineKeyboardButton(translate('remindersList', lang)  + ' 🗓', callback_data='REMINDER_LIST;')
 
         reply_markup = InlineKeyboardMarkup([
             [button_new_reminder],
@@ -110,42 +99,45 @@ class TelegramReminder:
     
     def _start(self, bot, update):
         chat_id = update.message.chat_id
-        text =  '''Привет! Я бот для нопоминаний. Я умею создавать разовые 
-        и повторяющиеся напоминания, а так же высылать утром список дел на день!'''
-        reply_markup = TelegramReminder._get_default_keyboard()
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
 
-        button_settings = InlineKeyboardButton('Настройки ⛭', callback_data='GETSETTINGS;')
+        text =  translate('hello', lang)
+        reply_markup = self._get_default_keyboard(chat_id)
+
+        button_settings = InlineKeyboardButton(translate('settings', lang) + ' ⛭', callback_data='GETSETTINGS;')
         reply_markup.inline_keyboard.append([button_settings])
 
         bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
 
     def _settings(self, bot, update):
         chat_id = update.callback_query.from_user.id
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
         
-        button_language = InlineKeyboardButton('Язык', callback_data='SETTINGS;LANG')
-        button_timezone = InlineKeyboardButton('Часовой пояс', callback_data='SETTINGS;TIMEZONE')
+        button_language = InlineKeyboardButton(translate('lang', lang), callback_data='SETTINGS;LANG')
+        button_timezone = InlineKeyboardButton(translate('timezone', lang), callback_data='SETTINGS;TIMEZONE')
 
         reply_markup = InlineKeyboardMarkup([
             [button_language],
             [button_timezone],
             ])
 
-        text = 'Настройки:'
+        text = translate('settings', lang)
         bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup)
 
     def _settings_action(self, bot, update):
         chat_id = update.callback_query.from_user.id
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
         reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
         settings_name = reminder_data[0]
         if len(reminder_data) == 1:
             if settings_name == 'LANG':
-                text = 'Выберите язык:'
+                text = translate('chooseLang', lang)
                 button_eng = InlineKeyboardButton('ENG', callback_data='SETTINGS;LANG;ENG')
                 button_rus = InlineKeyboardButton('RUS', callback_data='SETTINGS;LANG;RUS')
                 keyboard = [[button_eng], [button_rus]]
             elif settings_name == 'TIMEZONE':
-                text = 'Выберите часовой пояс:'
+                text = translate('chooseTimezone', lang)
                 keyboard = []
                 row = []
                 timezones = [tz for tz in pytz.all_timezones if 'Etc/GMT' in tz]
@@ -165,10 +157,10 @@ class TelegramReminder:
 
             if settings_name == 'LANG':
                 db.set_user_settings(self.db_engine, chat_id, language = settings_value)
-                text = 'Смена языка выполнена'
+                text = translate('langChanged', lang)
             elif settings_name == 'TIMEZONE':
                 db.set_user_settings(self.db_engine, chat_id, timezone = settings_value)
-                text = 'Смена часового пояса выполнена'
+                text = translate('timezoneChanged', lang)
 
             reply_markup = ReplyKeyboardRemove() 
 
@@ -176,31 +168,34 @@ class TelegramReminder:
     
     def _new_reminder_action(self, bot, update):
         chat_id = update.callback_query.from_user.id
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
         reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
         if reminder_data[0] == 'RECC':
-            button_day = InlineKeyboardButton('Ежедневно', callback_data='RECCURING;DAY')
-            button_week = InlineKeyboardButton('Еженедельно', callback_data='RECCURING;WEEK')
-            button_month = InlineKeyboardButton('Ежемесячно', callback_data='RECCURING;MONTH')
+            button_day = InlineKeyboardButton(translate('recDay', lang), callback_data='RECCURING;DAY')
+            button_week = InlineKeyboardButton(translate('recWeek', lang), callback_data='RECCURING;WEEK')
+            button_month = InlineKeyboardButton(translate('recMonth', lang), callback_data='RECCURING;MONTH')
 
             reply_markup = InlineKeyboardMarkup([[button_day], [button_week], [button_month]])
-            reply_text='Выберите периодичность:'
+            reply_text = translate('chooseRec', lang)
         else:
             reply_markup = None
-            reply_text = 'Введите заголовок:'
+            reply_text = translate('setTitle', lang)
 
         bot.sendMessage(chat_id=chat_id, text=reply_text, reply_markup=reply_markup)
 
     def _recurring_action(self, bot, update):
         chat_id = update.callback_query.from_user.id
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
         recurring_data = update.callback_query.data.replace('RECCURING;', '')
 
         db.set_user_input(self.db_engine, chat_id, recurring_data, frequency=True)
-        bot.sendMessage(chat_id=chat_id, text='Введите заголовок:',
+        bot.sendMessage(chat_id=chat_id, text=translate('setTitle', lang),
                         reply_markup=ReplyKeyboardRemove())
 
     def _reminders_list(self, bot, update):
         chat_id = update.callback_query.from_user.id
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
 
         keyboard = []
         for reminder in db.get_reminders(self.db_engine, False):
@@ -215,15 +210,16 @@ class TelegramReminder:
             keyboard.append([button])    
         if len(keyboard):
             reply_markup = InlineKeyboardMarkup(keyboard)
-            reply_text = 'Список напоминаний:'
+            reply_text = translate('remindersList', lang),
         else:
-            reply_text = 'Список напоминаний пуст'
-            reply_markup = TelegramReminder._get_default_keyboard()
+            reply_text = translate('remindersListEmpty', lang)
+            reply_markup = self._get_default_keyboard(chat_id)
 
         bot.sendMessage(chat_id=chat_id, text=reply_text, reply_markup=reply_markup)
 
     def _reminder_actions(self, bot, update):
         chat_id = update.callback_query.from_user.id
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
         reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
         reminder_id = reminder_data[0]
@@ -231,9 +227,9 @@ class TelegramReminder:
         reccuring = reminder_data[2]
 
         callback_data = f'MOVE;{reminder_id};{reminder_text};{reccuring}'
-        button_move = InlineKeyboardButton('Изменить время', callback_data=callback_data)
+        button_move = InlineKeyboardButton(translate('changeTime', lang), callback_data=callback_data)
 
-        button_del = InlineKeyboardButton('Удалить', callback_data='DEL;'+ reminder_id)
+        button_del = InlineKeyboardButton(translate('delete', lang), callback_data='DEL;'+ reminder_id)
 
         reply_markup = InlineKeyboardMarkup([[button_move, button_del]])
 
@@ -242,31 +238,33 @@ class TelegramReminder:
 
     def _cancel(self, bot, update):
         chat_id = update.message.chat_id
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
         db.clear_user_input(self.db_engine, chat_id)
 
-        reply_text = 'Действие отменено'
-        reply_markup = TelegramReminder._get_default_keyboard()
+        reply_text = translate('actionCanceled', lang)
+        reply_markup = self._get_default_keyboard(chat_id)
     
         bot.sendMessage(chat_id=chat_id, text=reply_text, reply_markup=reply_markup)
 
     def _menu(self, bot, update):
         chat_id = update.message.chat_id
 
-        reply_markup = TelegramReminder._get_default_keyboard()
+        reply_markup = self._get_default_keyboard(chat_id)
         bot.sendMessage(chat_id=chat_id, text='Меню:', reply_markup=reply_markup)
 
     def _process_input_data(self, bot, chat_id, message_data):
         status = db.set_user_input(self.db_engine, chat_id, message_data)
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
         
         if status == 0:
-            reply_text = 'Введите дату'
+            reply_text = translate('setDate', lang)
             reply_markup = telegramcalendar.create_calendar()
         elif status == 1:
-            reply_text = 'Введите время'
+            reply_text = translate('setTime', lang)
             reply_markup=ReplyKeyboardRemove()
         elif status == 2:
-            reply_text = 'Напоминание сохранено'
-            reply_markup = TelegramReminder._get_default_keyboard()
+            reply_text = translate('remSaved', lang)
+            reply_markup = self._get_default_keyboard(chat_id)
 
         bot.sendMessage(chat_id=chat_id, text=reply_text, reply_markup=reply_markup)
 
@@ -298,19 +296,21 @@ class TelegramReminder:
 
     def _del_reminder(self, bot, update):
         chat_id = update.callback_query.from_user.id
+        lang = db.get_user_settings(self.db_engine, chat_id, 'language')
         reminder_id= update.callback_query.data.replace('DEL;', '')
 
         db.delete_reminder(self.db_engine, reminder_id)
-        reply_markup = TelegramReminder._get_default_keyboard()
-        bot.sendMessage(chat_id=chat_id, text='Напоминание удалено',
+        reply_markup = self._get_default_keyboard(chat_id)
+        bot.sendMessage(chat_id=chat_id, text=translate('remDeleted', lang),
                             reply_markup=reply_markup)       
 
     def _send_reminders(self, bot, update):
         for reminder in db.get_reminders(self.db_engine):
             reccuring = reminder.frequency != None
            
+            lang = db.get_user_settings(self.db_engine, reminder.chat_id, 'language')
             callback_data = f'MOVE;{reminder.id};{reminder.text};{int(reccuring)}'
-            button = InlineKeyboardButton('Отложить', callback_data=callback_data)
+            button = InlineKeyboardButton(translate('postpone', lang), callback_data=callback_data)
             reply_markup = InlineKeyboardMarkup([[button]])
 
             bot.send_message(chat_id=reminder.chat_id, text=reminder.text, reply_markup=reply_markup)
@@ -320,6 +320,5 @@ class TelegramReminder:
             else:
                 db.delete_reminder(self.db_engine, reminder.id)
                 
-
     def run(self):
         self.updater.start_polling()

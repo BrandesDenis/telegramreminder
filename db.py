@@ -44,7 +44,7 @@ class Reminder(Base):
         self.frequency = frequency
 
     def __repr__(self):
-        return f'<UserInput({self.chat_id}, {self.text}, {self.date}, {self.time})>'
+        return f'<Reminder({self.chat_id}, {self.text}, {self.date}, {self.datetime})>'
 
 
 class UserSettings(Base):
