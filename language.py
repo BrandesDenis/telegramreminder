@@ -1,8 +1,12 @@
 import configparser
+import os
 
+
+dir_path = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(dir_path, "translations.ini")
 
 configparser = configparser.ConfigParser() 
-with open('translations.ini', encoding='utf-8') as f:
+with open(file_path, encoding='utf-8') as f:
     configparser.read_file(f)
 
 
