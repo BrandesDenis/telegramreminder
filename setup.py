@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="python_world",
+    name="telegramreminder",
     version="0.0.1",
     description="telegram reminder bot",
     long_description=long_description,
