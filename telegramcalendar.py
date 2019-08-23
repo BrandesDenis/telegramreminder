@@ -4,14 +4,14 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def create_callback_data(action, year=0, month=0, day=0):
-    return ";".join([action ,str(year), str(month), str(day)])
+    return ";".join([action, str(year), str(month), str(day)])
 
 
 def create_calendar(year=None, month=None):
     now = datetime.datetime.now()
-    if year == None:
+    if year is None:
         year = now.year
-    if month == None:
+    if month is None:
         month = now.month
 
     curr_month = False
@@ -24,15 +24,15 @@ def create_calendar(year=None, month=None):
 
     keyboard = []
     
-    #month and year
+    # month and year
     row = []
-    row.append(InlineKeyboardButton(calendar.month_name[month]+ " " +str(year),
-                callback_data=ignore_callback))
+    row.append(InlineKeyboardButton(calendar.month_name[month] + " " + str(year),
+               callback_data=ignore_callback))
     keyboard.append(row)
 
-    #week days
-    row=[]
-    for day in ["Mo","Tu","We","Th","Fr","Sa","Su"]:
+    # week days
+    row = []
+    for day in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]:
         row.append(InlineKeyboardButton(day, callback_data=ignore_callback))
     keyboard.append(row)
 
@@ -46,11 +46,11 @@ def create_calendar(year=None, month=None):
             else:
                 week_has_day = True
                 row.append(InlineKeyboardButton(day,
-                            callback_data=create_callback_data("DAY", year, month, day)))
+                           callback_data=create_callback_data("DAY", year, month, day)))
         if week_has_day:
             keyboard.append(row)
 
-    #Buttons
+    # Buttons
     row = []
     prev_callback = create_callback_data("PREV-MONTH", year, month, day)
     row.append(InlineKeyboardButton("<", callback_data=prev_callback))
@@ -62,7 +62,7 @@ def create_calendar(year=None, month=None):
 
     keyboard.append(row)
 
-    #today, tomorrow, aftertomorrow
+    # today, tomorrow, aftertomorrow
     row = []
     today_callback = create_callback_data("DAY", year, month, now_day)
     row.append(InlineKeyboardButton('today', callback_data=today_callback))
@@ -93,25 +93,25 @@ def process_selection(bot, update):
     curr_month = datetime.datetime(int(now.year), int(now.month), 1)
 
     if action == "IGNORE":
-        bot.answer_callback_query(callback_query_id= query.id)
+        bot.answer_callback_query(callback_query_id=query.id)
     elif action == "DAY":
         bot.edit_message_text(text=query.message.text,
-            chat_id=query.message.chat_id,
-            message_id=query.message.message_id)
+                              chat_id=query.message.chat_id,
+                              message_id=query.message.message_id)
         day_selected = True
         res_data = datetime.datetime(int(year), int(month), int(day))
     elif action == "PREV-MONTH":
         prev_month = selected_month - datetime.timedelta(days=1)
-        if prev_month>= curr_month:
+        if prev_month >= curr_month:
             bot.edit_message_text(text=query.message.text,
-                chat_id=query.message.chat_id,
-                message_id=query.message.message_id,
-                reply_markup=create_calendar(int(prev_month.year),int(prev_month.month)))
+                                  chat_id=query.message.chat_id,
+                                  message_id=query.message.message_id,
+                                  reply_markup=create_calendar(int(prev_month.year), int(prev_month.month)))
     elif action == "NEXT-MONTH":
         next_month = selected_month + datetime.timedelta(days=31)
         bot.edit_message_text(text=query.message.text,
-            chat_id=query.message.chat_id,
-            message_id=query.message.message_id,
-            reply_markup=create_calendar(int(next_month.year),int(next_month.month)))
+                              chat_id=query.message.chat_id,
+                              message_id=query.message.message_id,
+                              reply_markup=create_calendar(int(next_month.year), int(next_month.month)))
   
     return day_selected, res_data

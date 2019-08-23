@@ -47,16 +47,16 @@ class UserInput(Base):
             return -1
 
         user_input = session.query(UserInput).filter_by(chat_id=chat_id).first()
-        if user_input == None:
+        if user_input is None:
             user_input = UserInput(chat_id=chat_id)
             session.add(user_input)
 
-        if user_input.text == None:
+        if user_input.text is None:
             user_input.text = input_data
             state = 0    
-        elif user_input.date == None:
+        elif user_input.date is None:
             res_date = process_date(input_data)
-            if res_date != None:
+            if res_date is not None:
                 user_input.date = process_date(input_data)
                 state = 1
             else:
@@ -64,10 +64,10 @@ class UserInput(Base):
         else:
             state = 1
             res_time = process_time(input_data)
-            if res_time != None:
+            if res_time is not None:
                 date = datetime.datetime(user_input.date.year, user_input.date.month, user_input.date.day) + res_time
                 timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')
-                if timezone != None:
+                if timezone is not None:
                     date = get_utc_time(date, timezone)
 
                 if date > datetime.datetime.utcnow():
@@ -75,8 +75,8 @@ class UserInput(Base):
                     session.delete(user_input)
                     
         if state == 2:          
-            reminder = Reminder(chat_id = chat_id, text = user_input.text,
-                                datetime = date, frequency=user_input.frequency)
+            reminder = Reminder(chat_id=chat_id, tex=user_input.text,
+                                datetime=date, frequency=user_input.frequency)
                                 
             session.add(reminder)
             
@@ -115,7 +115,7 @@ class Reminder(Base):
 
         for reminder in reminders:
             timezone = UserSettings.get_user_settings(engine, reminder.chat_id, 'timezone')
-            if timezone != None:
+            if timezone is not None:
                 reminder.datetime = get_local_time(reminder.datetime, timezone)
             yield reminder
 
@@ -132,12 +132,12 @@ class Reminder(Base):
         session = get_session(engine)
         reminder = session.query(Reminder).filter_by(id=id).first()
         
-        if reminder != None:
-            if reminder.frequency =='DAY':
+        if reminder is not None:
+            if reminder.frequency == 'DAY':
                     timedelta = relativedelta(days=1)
-            elif reminder.frequency =='WEEK':
+            elif reminder.frequency == 'WEEK':
                     timedelta = relativedelta(days=7)
-            elif reminder.frequency =='MONTH':
+            elif reminder.frequency == 'MONTH':
                     timedelta = relativedelta(months=1)
 
             reminder.datetime += timedelta
@@ -165,7 +165,7 @@ class UserSettings(Base):
         session = get_session(engine)
 
         user_settings = session.query(UserSettings).filter_by(chat_id=chat_id).first()
-        if user_settings == None:
+        if user_settings is None:
             user_settings = UserSettings(chat_id=chat_id)
             session.add(user_settings)
 
@@ -190,10 +190,10 @@ class UserSettings(Base):
         session.close()
 
         value = None
-        if user_settings != None:
+        if user_settings is not None:
             value = getattr(user_settings, settings_name)
         
-        if value == None:
+        if value is None:
             value = UserSettings.get_default_settings(settings_name)
 
         return value
