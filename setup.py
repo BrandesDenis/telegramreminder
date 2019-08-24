@@ -24,7 +24,7 @@ setuptools.setup(
     install_requires=requirements(),
     url="https://github.com/BrandesDenis/telegramreminder",
     packages=setuptools.find_packages(),
-    include_package_data=True,
+    package_data={'telegramreminder': ['translations.ini']}
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
