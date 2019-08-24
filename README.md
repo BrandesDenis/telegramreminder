@@ -19,6 +19,6 @@ reminder.run()
 
 Installation:
 ```
-
+pip install git+https://github.com/BrandesDenis/telegramreminder
 ```
 
