@@ -75,7 +75,7 @@ class UserInput(Base):
                     session.delete(user_input)
                     
         if state == 2:          
-            reminder = Reminder(chat_id=chat_id, tex=user_input.text,
+            reminder = Reminder(chat_id=chat_id, text=user_input.text,
                                 datetime=date, frequency=user_input.frequency)
                                 
             session.add(reminder)
