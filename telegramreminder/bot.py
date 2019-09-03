@@ -208,8 +208,7 @@ class TelegramReminder:
             time_str = reminder.datetime.strftime('%d.%m.%y %H:%M')
            
             button_text = f'{reminder.text} {time_str} {freq_str}'
-            reccuring = reminder.frequency is not None
-            callback_data = f'REMINDER;{reminder.id};{reminder.text};{int(reccuring)}'
+            callback_data = f'REMINDER;{reminder.id}'
 
             button = InlineKeyboardButton(button_text, callback_data=callback_data)
             keyboard.append([button])    
@@ -229,10 +228,12 @@ class TelegramReminder:
         reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
         reminder_id = reminder_data[0]
-        reminder_text = reminder_data[1]
-        reccuring = reminder_data[2]
+        reminder = db.Reminder.get_reminder(self.db_engine, reminder_id)
+        
+        reccuring = reminder.frequency is not None
+        reminder_text = reminder.text
 
-        callback_data = f'MOVE;{reminder_id};{reminder_text};{reccuring}'
+        callback_data = f'MOVE;{reminder_id};{int(reccuring)}'
         button_move = InlineKeyboardButton(translate('changeTime', lang), callback_data=callback_data)
 
         button_del = InlineKeyboardButton(translate('delete', lang), callback_data='DEL;' + reminder_id)
@@ -292,8 +293,8 @@ class TelegramReminder:
         reminder_data = TelegramReminder._get_callback_data(update.callback_query.data)
 
         reminder_id = int(reminder_data[0])
-        reminder_text = reminder_data[1]
-        reccuring = reminder_data[2]
+        reccuring = reminder_data[1]
+        reminder_text = update.effective_message.text
 
         db.UserInput.clear_user_input(self.db_engine, chat_id)
         if reccuring == '0':
@@ -318,7 +319,7 @@ class TelegramReminder:
             reccuring = reminder.frequency is not None
            
             lang = db.UserSettings.get_user_settings(self.db_engine, reminder.chat_id, 'language')
-            callback_data = f'MOVE;{reminder.id};{reminder.text};{int(reccuring)}'
+            callback_data = f'MOVE;{reminder.id};{int(reccuring)}'
             button = InlineKeyboardButton(translate('postpone', lang), callback_data=callback_data)
             reply_markup = InlineKeyboardMarkup([[button]])
 

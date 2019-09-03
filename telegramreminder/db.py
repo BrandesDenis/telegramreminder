@@ -120,6 +120,16 @@ class Reminder(Base):
             yield reminder
 
         session.close()
+    
+    @staticmethod
+    def get_reminder(engine, id):
+        session = get_session(engine)
+
+        reminder = session.query(Reminder).filter(Reminder.id == id).first()
+
+        session.close()
+
+        return reminder
 
     @staticmethod
     def delete_reminder(engine, id):
