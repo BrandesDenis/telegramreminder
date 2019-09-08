@@ -9,6 +9,7 @@ def create_callback_data(action, year=0, month=0, day=0):
 
 def create_calendar(year=None, month=None):
     now = datetime.datetime.now()
+
     if year is None:
         year = now.year
     if month is None:
@@ -64,15 +65,13 @@ def create_calendar(year=None, month=None):
 
     # today, tomorrow, aftertomorrow
     row = []
-    today_callback = create_callback_data("DAY", year, month, now_day)
+    today_callback = create_callback_data("DAY_rel", 0, 0, 'today')
     row.append(InlineKeyboardButton('today', callback_data=today_callback))
 
-    tomorrow = now + datetime.timedelta(days=1)
-    tomorrow_callback = create_callback_data("DAY", tomorrow.year, tomorrow.month, tomorrow.day)
+    tomorrow_callback = create_callback_data("DAY_rel", 0, 0, 'tomorrow')
     row.append(InlineKeyboardButton('tomorrow', callback_data=tomorrow_callback))
 
-    aftertomorrow = now + datetime.timedelta(days=2)
-    aftertomorrow_callback = create_callback_data("DAY", aftertomorrow.year, aftertomorrow.month, aftertomorrow.day)
+    aftertomorrow_callback = create_callback_data("DAY_rel", 0, 0, 'aftertomorrow')
     row.append(InlineKeyboardButton('after tom', callback_data=aftertomorrow_callback))
 
     keyboard.append(row)
@@ -83,23 +82,27 @@ def create_calendar(year=None, month=None):
 def process_selection(bot, update):
     day_selected = False
     res_data = None
-    
+
     query = update.callback_query
     (action, year, month, day) = query.data.split(';')
 
-    selected_month = datetime.datetime(int(year), int(month), 1)
+    if action == 'DAY_rel':
+        res_data = day
+    else:
+        selected_month = datetime.datetime(int(year), int(month), 1)
 
-    now = datetime.datetime.now()
-    curr_month = datetime.datetime(int(now.year), int(now.month), 1)
+        now = datetime.datetime.now()
+        curr_month = datetime.datetime(int(now.year), int(now.month), 1)
 
     if action == "IGNORE":
         bot.answer_callback_query(callback_query_id=query.id)
-    elif action == "DAY":
+    elif action == "DAY" or action == "DAY_rel":
         bot.edit_message_text(text=query.message.text,
                               chat_id=query.message.chat_id,
                               message_id=query.message.message_id)
-        day_selected = True
-        res_data = datetime.datetime(int(year), int(month), int(day))
+        if action == "DAY":
+            res_data = datetime.datetime(int(year), int(month), int(day))
+         day_selected = True
     elif action == "PREV-MONTH":
         prev_month = selected_month - datetime.timedelta(days=1)
         if prev_month >= curr_month:

@@ -55,9 +55,10 @@ class UserInput(Base):
             user_input.text = input_data
             state = 0    
         elif user_input.date is None:
-            res_date = process_date(input_data)
+            timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')    
+            res_date = process_date(input_data, timezone)
             if res_date is not None:
-                user_input.date = process_date(input_data)
+                user_input.date = res_date
                 state = 1
             else:
                 state = 0    
@@ -245,17 +246,18 @@ def change_timezone(datetime, timezone1, timezone2):
     return timezone1_dt.astimezone(timezone2_).replace(tzinfo=None)
 
 
-def process_date(date):
+def process_date(date, timezone):
     res_date = None
-    now = datetime.datetime.now()
-    today = datetime.datetime(now.year, now.month, now.day)
+    now = get_local_time(datetime.datetime.now(), timezone)
+    today = datetime.datetime(now.year, now.month, now.day)    
+
     if type(date) == str:
         date = date.lower()
-        if date == 'сегодня':
+        if date == 'today':
             res_date = today
-        elif date == 'завтра':
+        elif date == 'tomorrow':
             res_date = today + relativedelta(days=1)
-        elif date == 'послезавтра':
+        elif date == 'aftertomorrow':
             res_date = today + relativedelta(days=2)   
     else:
         if date >= today:
@@ -277,6 +279,9 @@ def process_time(time_str):
         if len(time) > 1: 
             minutes = int(time[1])
     except:
+        return None
+
+    if hours > 23 or minutes > 59:
         return None
 
     return datetime.timedelta(hours=hours, minutes=minutes)
