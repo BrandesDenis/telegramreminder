@@ -102,7 +102,7 @@ def process_selection(bot, update):
                               message_id=query.message.message_id)
         if action == "DAY":
             res_data = datetime.datetime(int(year), int(month), int(day))
-         day_selected = True
+        day_selected = True
     elif action == "PREV-MONTH":
         prev_month = selected_month - datetime.timedelta(days=1)
         if prev_month >= curr_month:

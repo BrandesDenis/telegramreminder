@@ -248,7 +248,7 @@ def change_timezone(datetime, timezone1, timezone2):
 
 def process_date(date, timezone):
     res_date = None
-    now = get_local_time(datetime.datetime.now(), timezone)
+    now = get_local_time(datetime.datetime.utcnow(), timezone)
     today = datetime.datetime(now.year, now.month, now.day)    
 
     if type(date) == str:
