@@ -29,11 +29,12 @@ class TelegramReminder:
         start = CommandHandler('start', self._start)
         self.dispatcher.add_handler(start)
 
-        cancel = RegexHandler(r'^\s*(?:Отмена|Cancel)\s*', self._cancel)
-        self.dispatcher.add_handler(cancel)
-
         menu = RegexHandler(r'^\s*(?:Меню|Menu)\s*', self._menu)
         self.dispatcher.add_handler(menu)
+
+        cancel = CallbackQueryHandler(self._cancel,
+                              pattern=r'^CANCEL;.*')
+        self.dispatcher.add_handler(cancel)
 
         settings = CallbackQueryHandler(self._settings,
                                         pattern=r'^GETSETTINGS;.*')
@@ -76,7 +77,6 @@ class TelegramReminder:
         self.dispatcher.add_handler(process_message)
 
     def _get_default_keyboard(self, chat_id):
-
         lang = db.UserSettings.get_user_settings(self.db_engine, chat_id, 'language')
 
         button_new_reminder = InlineKeyboardButton(translate('newReminder', lang) + ' 🕭', callback_data='NEW_REMINDER;')
@@ -245,7 +245,7 @@ class TelegramReminder:
                          reply_markup=reply_markup)
 
     def _cancel(self, bot, update):
-        chat_id = update.message.chat_id
+        chat_id = update.callback_query.from_user.id
         lang = db.UserSettings.get_user_settings(self.db_engine, chat_id, 'language')
         db.UserInput.clear_user_input(self.db_engine, chat_id)
 
@@ -267,9 +267,12 @@ class TelegramReminder:
         if status == 0:
             reply_text = translate('setDate', lang)
             reply_markup = telegramcalendar.create_calendar()
+            cancel = InlineKeyboardButton(translate('cancel', lang), callback_data='CANCEL;')
+            reply_markup.inline_keyboard.append([cancel])
         elif status == 1:
             reply_text = translate('setTime', lang)
-            reply_markup = ReplyKeyboardRemove()
+            cancel = InlineKeyboardButton(translate('cancel', lang), callback_data='CANCEL;')
+            reply_markup = InlineKeyboardMarkup([[cancel]])
         elif status == 2:
             reply_text = translate('remSaved', lang)
             reply_markup = self._get_default_keyboard(chat_id)
