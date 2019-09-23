@@ -33,11 +33,11 @@ class TelegramReminder:
         self.dispatcher.add_handler(menu)
 
         cancel = CallbackQueryHandler(self._cancel,
-                              pattern=r'^CANCEL;.*')
+                              pattern=r'^CANCEL;')
         self.dispatcher.add_handler(cancel)
 
         settings = CallbackQueryHandler(self._settings,
-                                        pattern=r'^GETSETTINGS;.*')
+                                        pattern=r'^GETSETTINGS;')
         self.dispatcher.add_handler(settings)
 
         settings_action = CallbackQueryHandler(self._settings_action,
@@ -49,7 +49,7 @@ class TelegramReminder:
         self.dispatcher.add_handler(new_reminder_action)
 
         reminders_list = CallbackQueryHandler(self._reminders_list,
-                                              pattern=r'^REMINDER_LIST;.*')
+                                              pattern=r'^REMINDER_LIST;')
         self.dispatcher.add_handler(reminders_list)
 
         recurring_action = CallbackQueryHandler(self._recurring_action,
@@ -204,10 +204,10 @@ class TelegramReminder:
 
         keyboard = []
         for reminder in db.Reminder.get_reminders(self.db_engine, False):
-            freq_str = '' if reminder.frequency is None else reminder.frequency
+            freq_str = '' if reminder.frequency is None else translate(reminder.frequency, lang)
             time_str = reminder.datetime.strftime('%d.%m.%y %H:%M')
            
-            button_text = f'{reminder.text} {time_str} {freq_str}'
+            button_text = f'{reminder.text} {time_str} ({freq_str})'
             callback_data = f'REMINDER;{reminder.id}'
 
             button = InlineKeyboardButton(button_text, callback_data=callback_data)
