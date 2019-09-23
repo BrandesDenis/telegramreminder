@@ -1,13 +1,14 @@
 import datetime
 import calendar
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from .language import translate
 
 
 def create_callback_data(action, year=0, month=0, day=0):
     return ";".join([action, str(year), str(month), str(day)])
 
 
-def create_calendar(year=None, month=None):
+def create_calendar(year=None, month=None, lang):
     now = datetime.datetime.now()
 
     if year is None:
@@ -27,13 +28,15 @@ def create_calendar(year=None, month=None):
     
     # month and year
     row = []
-    row.append(InlineKeyboardButton(calendar.month_name[month] + " " + str(year),
+    month_name = translate('Months', lang).split(',')[month-1]
+
+    row.append(InlineKeyboardButton(month_name + " " + str(year),
                callback_data=ignore_callback))
     keyboard.append(row)
 
     # week days
     row = []
-    for day in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]:
+    for day in translate('WeekDays', lang).split(','):
         row.append(InlineKeyboardButton(day, callback_data=ignore_callback))
     keyboard.append(row)
 
@@ -63,23 +66,25 @@ def create_calendar(year=None, month=None):
 
     keyboard.append(row)
 
-    # today, tomorrow, aftertomorrow
+    # today, tomorrow, cancel
     row = []
     today_callback = create_callback_data("DAY_rel", 0, 0, 'today')
-    row.append(InlineKeyboardButton('today', callback_data=today_callback))
+    today_callback_text = translate('today', lang)
+    row.append(InlineKeyboardButton(today_callback_text, callback_data=today_callback))
 
     tomorrow_callback = create_callback_data("DAY_rel", 0, 0, 'tomorrow')
-    row.append(InlineKeyboardButton('tomorrow', callback_data=tomorrow_callback))
+    tomorrow_callback_text = translate('tomorrow', lang)
+    row.append(InlineKeyboardButton(tomorrow_callback_text, callback_data=tomorrow_callback))
 
-    aftertomorrow_callback = create_callback_data("DAY_rel", 0, 0, 'aftertomorrow')
-    row.append(InlineKeyboardButton('after tom', callback_data=aftertomorrow_callback))
+    cancel_text = translate('cancel', lang)
+    row.append(InlineKeyboardButton(cancel_text, callback_data='CANCEL;'))
 
     keyboard.append(row)
 
     return InlineKeyboardMarkup(keyboard)
 
 
-def process_selection(bot, update):
+def process_selection(bot, update, lang):
     day_selected = False
     res_data = None
 
@@ -109,12 +114,12 @@ def process_selection(bot, update):
             bot.edit_message_text(text=query.message.text,
                                   chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
-                                  reply_markup=create_calendar(int(prev_month.year), int(prev_month.month)))
+                                  reply_markup=create_calendar(int(prev_month.year), int(prev_month.month),lang))
     elif action == "NEXT-MONTH":
         next_month = selected_month + datetime.timedelta(days=31)
         bot.edit_message_text(text=query.message.text,
                               chat_id=query.message.chat_id,
                               message_id=query.message.message_id,
-                              reply_markup=create_calendar(int(next_month.year), int(next_month.month)))
+                              reply_markup=create_calendar(int(next_month.year), int(next_month.month),lang))
   
     return day_selected, res_data

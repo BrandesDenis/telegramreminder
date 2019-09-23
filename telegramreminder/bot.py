@@ -266,9 +266,7 @@ class TelegramReminder:
         
         if status == 0:
             reply_text = translate('setDate', lang)
-            reply_markup = telegramcalendar.create_calendar()
-            cancel = InlineKeyboardButton(translate('cancel', lang), callback_data='CANCEL;')
-            reply_markup.inline_keyboard.append([cancel])
+            reply_markup = telegramcalendar.create_calendar(lang=lang)
         elif status == 1:
             reply_text = translate('setTime', lang)
             cancel = InlineKeyboardButton(translate('cancel', lang), callback_data='CANCEL;')
@@ -286,7 +284,8 @@ class TelegramReminder:
         self._process_input_data(bot, chat_id, message_text)
 
     def _calendar_actions(self, bot, update):
-        selected, date = telegramcalendar.process_selection(bot, update)
+        lang = db.UserSettings.get_user_settings(self.db_engine, chat_id, 'language')
+        selected, date = telegramcalendar.process_selection(bot, update, lang)
         if selected:
             chat_id = update.callback_query.from_user.id
             self._process_input_data(bot, chat_id, date)
