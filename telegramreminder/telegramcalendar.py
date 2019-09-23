@@ -8,7 +8,7 @@ def create_callback_data(action, year=0, month=0, day=0):
     return ";".join([action, str(year), str(month), str(day)])
 
 
-def create_calendar(year=None, month=None, lang):
+def create_calendar(lang, year=None, month=None):
     now = datetime.datetime.now()
 
     if year is None:
@@ -111,15 +111,17 @@ def process_selection(bot, update, lang):
     elif action == "PREV-MONTH":
         prev_month = selected_month - datetime.timedelta(days=1)
         if prev_month >= curr_month:
+            reply_markup = create_calendar(lang, int(prev_month.year), int(prev_month.month))
             bot.edit_message_text(text=query.message.text,
                                   chat_id=query.message.chat_id,
                                   message_id=query.message.message_id,
-                                  reply_markup=create_calendar(int(prev_month.year), int(prev_month.month),lang))
+                                  reply_markup=reply_markup)
     elif action == "NEXT-MONTH":
         next_month = selected_month + datetime.timedelta(days=31)
+        reply_markup = create_calendar(lang, int(next_month.year), int(next_month.month))
         bot.edit_message_text(text=query.message.text,
                               chat_id=query.message.chat_id,
                               message_id=query.message.message_id,
-                              reply_markup=create_calendar(int(next_month.year), int(next_month.month),lang))
+                              reply_markup=reply_markup)
   
     return day_selected, res_data
