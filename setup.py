@@ -17,7 +17,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="telegramreminder",
-    version="1.0.1",
+    version="1.0.3",
     description="telegram reminder bot",
     long_description=long_description,
     long_description_content_type="text/markdown",
