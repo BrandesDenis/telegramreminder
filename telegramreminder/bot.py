@@ -204,10 +204,10 @@ class TelegramReminder:
 
         keyboard = []
         for reminder in db.Reminder.get_reminders(self.db_engine, False):
-            freq_str = '' if reminder.frequency is None else translate(reminder.frequency, lang)
+            freq_str = '' if reminder.frequency is None else f'({translate(reminder.frequency, lang)})'
             time_str = reminder.datetime.strftime('%d.%m.%y %H:%M')
            
-            button_text = f'{reminder.text} {time_str} ({freq_str})'
+            button_text = f'{reminder.text} {time_str} {freq_str}'
             callback_data = f'REMINDER;{reminder.id}'
 
             button = InlineKeyboardButton(button_text, callback_data=callback_data)
@@ -284,6 +284,7 @@ class TelegramReminder:
         self._process_input_data(bot, chat_id, message_text)
 
     def _calendar_actions(self, bot, update):
+        chat_id = update.callback_query.from_user.id
         lang = db.UserSettings.get_user_settings(self.db_engine, chat_id, 'language')
         selected, date = telegramcalendar.process_selection(bot, update, lang)
         if selected:
