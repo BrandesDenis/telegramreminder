@@ -5,6 +5,27 @@ from .language import translate
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CallbackQueryHandler, MessageHandler, Filters, RegexHandler, CommandHandler
 
+'''Идеи для улучшения
+
+Хочу добавить возможность установки уведомления просто одним сообщением:
+
+варианты:
+
+текст время - на сегодня
+
+текст (сегодня. завтра. послезавтра) время
+
+текст день_недели время - не следующий день недели
+
+текст дата(только тек месяц) время - на число текущего месяца главное не спутать с на сегодня
+
+текст дата(с именем месяца) время - конкретное число конкретное время
+
++ периодическое:
+ - в конце конструкции добавлять слово периодичности
+
+'''
+
 
 class TelegramReminder:
 
