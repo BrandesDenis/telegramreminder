@@ -2,7 +2,7 @@ import pytz
 import datetime
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, Date, DateTime, Time
+from sqlalchemy import Column, Integer, String, Date, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -35,6 +35,7 @@ class UserInput(Base):
 
     @staticmethod
     def set_user_input(engine, chat_id, input_data, frequency=False):
+
         if frequency:
             UserInput.clear_user_input(engine, chat_id)
         
@@ -46,8 +47,32 @@ class UserInput(Base):
 
             return -1
 
+
         user_input = session.query(UserInput).filter_by(chat_id=chat_id).first()
         if user_input is None:
+
+            #пока что кастыль для испытания новой фичи, потом все нужно будет перерефачить
+            try:
+                date, scheduled, text = UserInput.get_full_reminder_data(input_data)
+
+                timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')
+                if timezone is not None:
+                    date = get_utc_time(date, timezone)
+
+                if date <= datetime.datetime.utcnow():
+                    raise ValueError
+
+                reminder = Reminder(chat_id=chat_id, text=text,
+                                    datetime=date, frequency=scheduled)
+
+                session.add(reminder)
+            
+                session_commit(session)
+
+                return 2
+            except:
+                pass
+            
             user_input = UserInput(chat_id=chat_id)
             session.add(user_input)
 
@@ -61,7 +86,7 @@ class UserInput(Base):
                 user_input.date = res_date
                 state = 1
             else:
-                state = 0    
+                state = 0
         else:
             state = 1
             res_time = process_time(input_data)
@@ -84,6 +109,104 @@ class UserInput(Base):
         session_commit(session)
 
         return state
+
+    @staticmethod    
+    def get_step_reminder_data(text):
+        pass
+    
+    @staticmethod    
+    def get_full_reminder_data(text):
+
+        # Нужны проверки, если не получилось, то возвращать false и действовать по обычному через календарь
+
+        # А может через календать только когда кнопка
+
+        if ' в ' in text:
+            pass
+
+        text = text.strip().replace('  ', ' ')
+
+        scheduled = None
+        last, rest = get_last_word_and_rest(text)
+
+        freq = {
+            'ежедневно': 'DAY',
+            'еженедельно': 'WEEK',
+            'ежемесячно': 'MONTH',
+        }
+
+        if last in freq.keys():
+            scheduled = freq[last]
+            text = rest
+
+        text, time = text.split(' в ')
+
+        timedelta = process_time(time)
+        if timedelta is None:
+            raise ValueError
+       
+        # time_list = time.split(' ')
+
+        # h = int(time_list[0].strip())
+        # m = 0
+        # if len(time_list) == 2:
+        #     m = int(time_list[1].strip())
+
+        # timedelta = datetime.timedelta(hours=h, minutes=m)
+
+        last, rest = get_last_word_and_rest(text)
+
+        date = None 
+
+        days = ('сегодня', 'завтра', 'послезавтра')
+        months = ('января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря')
+
+        now = datetime.datetime.now()
+        today = datetime.datetime(now.year, now.month, now.day) 
+
+        last = last.lower()
+
+        if last in days:
+            if last == 'сегодня':
+                date = today
+            elif last == 'завтра':
+                date = today + relativedelta(days=1)
+            elif last == 'послезавтра':
+                date = today + relativedelta(days=2)
+
+            text = rest
+
+        if date is None:
+            if last in months:
+                year = now.year
+                month = months.index(last) + 1
+                if month < now.month:
+                    year += 1
+
+                text = rest
+                last, rest = get_last_word_and_rest(text)
+
+                day = int(last)
+
+                date = datetime.datetime(year, month, day)
+
+                text = rest
+
+            else:
+                
+                if len(last) <= 2 and last.isdigit():
+                    day = int(last)
+                    date = datetime.datetime(now.year, now.month, day)
+
+                    text = rest
+
+                else:
+                    date = today
+
+        
+        date = date + timedelta
+
+        return date, scheduled, text
 
 
 class Reminder(Base):
@@ -285,3 +408,15 @@ def process_time(time_str):
         return None
 
     return datetime.timedelta(hours=hours, minutes=minutes)
+
+
+def get_last_word_and_rest(text, sep=' '):
+
+    if sep in text:
+        last = text.split(sep)[-1]
+        rest = text.replace(sep + last, '')
+    else:
+        last = text
+        rest = ''
+
+    return last, rest
