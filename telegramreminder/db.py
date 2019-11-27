@@ -114,15 +114,19 @@ class UserInput(Base):
     def get_step_reminder_data(text):
         pass
     
-    @staticmethod    
+    @staticmethod 
     def get_full_reminder_data(text):
 
         # Нужны проверки, если не получилось, то возвращать false и действовать по обычному через календарь
 
         # А может через календать только когда кнопка
 
-        if ' в ' in text:
-            pass
+        # дни неделя бл*
+
+        # последнее в!
+
+        if ' в ' not in text:
+            raise ValueError
 
         text = text.strip().replace('  ', ' ')
 
@@ -139,12 +143,15 @@ class UserInput(Base):
             scheduled = freq[last]
             text = rest
 
-        text, time = text.split(' в ')
+        time_sep_pos = text.rfind(' в ')
+
+        time = text[time_sep_pos + 3:]
+        text = text[:time_sep_pos]
 
         timedelta = process_time(time)
         if timedelta is None:
             raise ValueError
-       
+
         # time_list = time.split(' ')
 
         # h = int(time_list[0].strip())
@@ -158,7 +165,8 @@ class UserInput(Base):
 
         date = None 
 
-        days = ('сегодня', 'завтра', 'послезавтра')
+        #словари парень!!
+        days = ('сегодня', 'завтра', 'послезавтра', 'понедельник','пн','вторник','вт','среда','ср','четверг','чт','пятница','пт','суббота','сб','воскресенье','вс')
         months = ('января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря')
 
         now = datetime.datetime.now()
@@ -173,8 +181,36 @@ class UserInput(Base):
                 date = today + relativedelta(days=1)
             elif last == 'послезавтра':
                 date = today + relativedelta(days=2)
+            else:
+                if last == 'пн' or last == 'понедельник':
+                    weekday = 0
+                elif last == 'вт' or last == 'вторник':
+                    weekday = 1
+                elif last == 'ср' or last == 'среда':
+                    weekday = 2
+                elif last == 'чт' or last == 'четверг':
+                    weekday = 3
+                elif last == 'пт' or last == 'пятнца':
+                    weekday = 4
+                elif last == 'сб' or last == 'суббота':
+                    weekday = 5
+                elif last == 'вс' or last == 'воскресенье':
+                    weekday = 6
 
+                now_weekday = now.weekday()
+                
+                if now_weekday <= weekday:
+                    dif = weekday - now_weekday
+                else:
+                    dif = 7 - now_weekday + weekday
+
+                date = today + relativedelta(days=dif)
+                                    
             text = rest
+
+            last, rest = get_last_word_and_rest(text)
+            if last in ('в', 'во'):
+                text = rest
 
         if date is None:
             if last in months:
@@ -203,7 +239,7 @@ class UserInput(Base):
                 else:
                     date = today
 
-        
+
         date = date + timedelta
 
         return date, scheduled, text
