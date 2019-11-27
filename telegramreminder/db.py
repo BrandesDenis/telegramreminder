@@ -53,7 +53,7 @@ class UserInput(Base):
 
             #пока что кастыль для испытания новой фичи, потом все нужно будет перерефачить
             try:
-                date, scheduled, text = UserInput.get_full_reminder_data(input_data)
+                date, scheduled, text = UserInput.get_reminder_data_by_str(input_data)
 
                 timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')
                 if timezone is not None:
@@ -80,8 +80,34 @@ class UserInput(Base):
             user_input.text = input_data
             state = 0    
         elif user_input.date is None:
-            timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')    
+            res_date = None
+
+            timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')
+
+            if isinstance(input_data, str): 
+                try:
+                    date, _, _ = UserInput.get_reminder_data_by_str(input_data, only_datetime=True)
+
+                    if timezone is not None:
+                        date = get_utc_time(date, timezone)
+
+                    if date <= datetime.datetime.utcnow():
+                        raise ValueError
+
+                    reminder = Reminder(chat_id=chat_id, text=user_input.text,
+                                        datetime=date, frequency=user_input.frequency)
+
+                    session.add(reminder)
+                
+                    session_commit(session)
+
+                    return 2
+
+                except:
+                    pass
+ 
             res_date = process_date(input_data, timezone)
+
             if res_date is not None:
                 user_input.date = res_date
                 state = 1
@@ -115,7 +141,7 @@ class UserInput(Base):
         pass
     
     @staticmethod 
-    def get_full_reminder_data(text):
+    def get_reminder_data_by_str(text, only_datetime=False):
 
         # Нужны проверки, если не получилось, то возвращать false и действовать по обычному через календарь
 
@@ -125,7 +151,7 @@ class UserInput(Base):
 
         # последнее в!
 
-        if ' в ' not in text:
+        if 'в ' not in text.lower():
             raise ValueError
 
         text = text.strip().replace('  ', ' ')
@@ -139,14 +165,14 @@ class UserInput(Base):
             'ежемесячно': 'MONTH',
         }
 
-        if last in freq.keys():
+        if last.lower() in freq.keys():
             scheduled = freq[last]
             text = rest
 
-        time_sep_pos = text.rfind(' в ')
+        time_sep_pos = text.lower().rfind('в ')
 
-        time = text[time_sep_pos + 3:]
-        text = text[:time_sep_pos]
+        time = text[time_sep_pos + 2:]
+        text = text[:time_sep_pos].strip()
 
         timedelta = process_time(time)
         if timedelta is None:
@@ -241,6 +267,9 @@ class UserInput(Base):
 
 
         date = date + timedelta
+
+        if only_datetime and text.replace(' ', '') != '':
+            raise ValueError
 
         return date, scheduled, text
 
@@ -406,6 +435,9 @@ def change_timezone(datetime, timezone1, timezone2):
 
 
 def process_date(date, timezone):
+
+    #Тут таймзоун вообще не уместен!
+
     res_date = None
     now = get_local_time(datetime.datetime.utcnow(), timezone)
     today = datetime.datetime(now.year, now.month, now.day)    
@@ -447,7 +479,6 @@ def process_time(time_str):
 
 
 def get_last_word_and_rest(text, sep=' '):
-
     if sep in text:
         last = text.split(sep)[-1]
         rest = text.replace(sep + last, '')
