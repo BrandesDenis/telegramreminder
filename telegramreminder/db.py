@@ -53,9 +53,8 @@ class UserInput(Base):
 
             #пока что кастыль для испытания новой фичи, потом все нужно будет перерефачить
             try:
-                date, scheduled, text = UserInput.get_reminder_data_by_str(input_data)
-
                 timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')
+                date, scheduled, text = UserInput.get_reminder_data_by_str(input_data, timezone)
                 if timezone is not None:
                     date = get_utc_time(date, timezone)
 
@@ -86,7 +85,7 @@ class UserInput(Base):
 
             if isinstance(input_data, str): 
                 try:
-                    date, _, _ = UserInput.get_reminder_data_by_str(input_data, only_datetime=True)
+                    date, _, _ = UserInput.get_reminder_data_by_str(input_data, timezone, only_datetime=True)
 
                     if timezone is not None:
                         date = get_utc_time(date, timezone)
@@ -141,7 +140,7 @@ class UserInput(Base):
         pass
     
     @staticmethod 
-    def get_reminder_data_by_str(text, only_datetime=False):
+    def get_reminder_data_by_str(text, timezone, only_datetime=False):
 
         # Нужны проверки, если не получилось, то возвращать false и действовать по обычному через календарь
 
@@ -195,8 +194,8 @@ class UserInput(Base):
         days = ('сегодня', 'завтра', 'послезавтра', 'понедельник','пн','вторник','вт','среда','ср','четверг','чт','пятница','пт','суббота','сб','воскресенье','вс')
         months = ('января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря')
 
-        now = datetime.datetime.now()
-        today = datetime.datetime(now.year, now.month, now.day) 
+        now = get_local_time(datetime.datetime.utcnow(), timezone)
+        today = datetime.datetime(now.year, now.month, now.day)  
 
         last = last.lower()
 
