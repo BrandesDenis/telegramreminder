@@ -17,7 +17,7 @@ class UserInput(Base):
     text = Column(String)
     date = Column(Date)
     frequency = Column(String)
-    
+
     def __init__(self, chat_id, **kwargs):
         self.chat_id = chat_id
         self.text = kwargs.get('text')
@@ -38,7 +38,7 @@ class UserInput(Base):
 
         if frequency:
             UserInput.clear_user_input(engine, chat_id)
-        
+
         session = get_session(engine)
         if frequency:
             user_input = UserInput(chat_id=chat_id, frequency=input_data)
@@ -47,14 +47,16 @@ class UserInput(Base):
 
             return -1
 
-
-        user_input = session.query(UserInput).filter_by(chat_id=chat_id).first()
+        user_input = session.query(UserInput).filter_by(
+            chat_id=chat_id).first()
         if user_input is None:
 
-            #пока что кастыль для испытания новой фичи, потом все нужно будет перерефачить
+            # пока что кастыль для испытания новой фичи, потом все нужно будет перерефачить
             try:
-                timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')
-                date, scheduled, text = UserInput.get_reminder_data_by_str(input_data, timezone)
+                timezone = UserSettings.get_user_settings(
+                    engine, chat_id, 'timezone')
+                date, scheduled, text = UserInput.get_reminder_data_by_str(
+                    input_data, timezone)
                 if timezone is not None:
                     date = get_utc_time(date, timezone)
 
@@ -65,27 +67,29 @@ class UserInput(Base):
                                     datetime=date, frequency=scheduled)
 
                 session.add(reminder)
-            
+
                 session_commit(session)
 
                 return 2
             except:
                 pass
-            
+
             user_input = UserInput(chat_id=chat_id)
             session.add(user_input)
 
         if user_input.text is None:
             user_input.text = input_data
-            state = 0    
+            state = 0
         elif user_input.date is None:
             res_date = None
 
-            timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')
+            timezone = UserSettings.get_user_settings(
+                engine, chat_id, 'timezone')
 
-            if isinstance(input_data, str): 
+            if isinstance(input_data, str):
                 try:
-                    date, _, _ = UserInput.get_reminder_data_by_str(input_data, timezone, only_datetime=True)
+                    date, _, _ = UserInput.get_reminder_data_by_str(
+                        input_data, timezone, only_datetime=True)
 
                     if timezone is not None:
                         date = get_utc_time(date, timezone)
@@ -97,14 +101,14 @@ class UserInput(Base):
                                         datetime=date, frequency=user_input.frequency)
 
                     session.add(reminder)
-                
+
                     session_commit(session)
 
                     return 2
 
                 except:
                     pass
- 
+
             res_date = process_date(input_data, timezone)
 
             if res_date is not None:
@@ -116,30 +120,32 @@ class UserInput(Base):
             state = 1
             res_time = process_time(input_data)
             if res_time is not None:
-                date = datetime.datetime(user_input.date.year, user_input.date.month, user_input.date.day) + res_time
-                timezone = UserSettings.get_user_settings(engine, chat_id, 'timezone')
+                date = datetime.datetime(
+                    user_input.date.year, user_input.date.month, user_input.date.day) + res_time
+                timezone = UserSettings.get_user_settings(
+                    engine, chat_id, 'timezone')
                 if timezone is not None:
                     date = get_utc_time(date, timezone)
 
                 if date > datetime.datetime.utcnow():
                     state = 2
                     session.delete(user_input)
-                    
-        if state == 2:          
+
+        if state == 2:
             reminder = Reminder(chat_id=chat_id, text=user_input.text,
                                 datetime=date, frequency=user_input.frequency)
-                                
+
             session.add(reminder)
-            
+
         session_commit(session)
 
         return state
 
-    @staticmethod    
+    @staticmethod
     def get_step_reminder_data(text):
         pass
-    
-    @staticmethod 
+
+    @staticmethod
     def get_reminder_data_by_str(text, timezone, only_datetime=False):
 
         # Нужны проверки, если не получилось, то возвращать false и действовать по обычному через календарь
@@ -188,14 +194,16 @@ class UserInput(Base):
 
         last, rest = get_last_word_and_rest(text)
 
-        date = None 
+        date = None
 
-        #словари парень!!
-        days = ('сегодня', 'завтра', 'послезавтра', 'понедельник','пн','вторник','вт','среда','ср','четверг','чт','пятница','пт','суббота','сб','воскресенье','вс')
-        months = ('января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря')
+        # словари парень!!
+        days = ('сегодня', 'завтра', 'послезавтра', 'понедельник', 'пн', 'вторник', 'вт',
+                'среда', 'ср', 'четверг', 'чт', 'пятница', 'пт', 'суббота', 'сб', 'воскресенье', 'вс')
+        months = ('января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря')
 
         now = get_local_time(datetime.datetime.utcnow(), timezone)
-        today = datetime.datetime(now.year, now.month, now.day)  
+        today = datetime.datetime(now.year, now.month, now.day)
 
         last = last.lower()
 
@@ -223,14 +231,14 @@ class UserInput(Base):
                     weekday = 6
 
                 now_weekday = now.weekday()
-                
+
                 if now_weekday <= weekday:
                     dif = weekday - now_weekday
                 else:
                     dif = 7 - now_weekday + weekday
 
                 date = today + relativedelta(days=dif)
-                                    
+
             text = rest
 
             last, rest = get_last_word_and_rest(text)
@@ -254,7 +262,7 @@ class UserInput(Base):
                 text = rest
 
             else:
-                
+
                 if len(last) <= 2 and last.isdigit():
                     day = int(last)
                     date = datetime.datetime(now.year, now.month, day)
@@ -263,7 +271,6 @@ class UserInput(Base):
 
                 else:
                     date = today
-
 
         date = date + timedelta
 
@@ -281,7 +288,7 @@ class Reminder(Base):
     text = Column(String)
     datetime = Column(DateTime)
     frequency = Column(String)
-    
+
     def __init__(self, chat_id, text, datetime, frequency):
         self.chat_id = chat_id
         self.text = text
@@ -295,20 +302,22 @@ class Reminder(Base):
     def get_reminders(engine, upcoming=True):
         session = get_session(engine)
 
-        if upcoming: 
+        if upcoming:
             now = datetime.datetime.utcnow()
-            reminders = session.query(Reminder).filter(Reminder.datetime < now).order_by(Reminder.datetime)
+            reminders = session.query(Reminder).filter(
+                Reminder.datetime < now).order_by(Reminder.datetime)
         else:
             reminders = session.query(Reminder).order_by(Reminder.datetime)
 
         for reminder in reminders:
-            timezone = UserSettings.get_user_settings(engine, reminder.chat_id, 'timezone')
+            timezone = UserSettings.get_user_settings(
+                engine, reminder.chat_id, 'timezone')
             if timezone is not None:
                 reminder.datetime = get_local_time(reminder.datetime, timezone)
             yield reminder
 
         session.close()
-    
+
     @staticmethod
     def get_reminder(engine, id):
         session = get_session(engine)
@@ -329,14 +338,28 @@ class Reminder(Base):
     def move_reccuring_reminder(engine, id):
         session = get_session(engine)
         reminder = session.query(Reminder).filter_by(id=id).first()
-        
+
         if reminder is not None:
             if reminder.frequency == 'DAY':
-                    timedelta = relativedelta(days=1)
+                timedelta = relativedelta(days=1)
             elif reminder.frequency == 'WEEK':
-                    timedelta = relativedelta(days=7)
+                timedelta = relativedelta(days=7)
             elif reminder.frequency == 'MONTH':
-                    timedelta = relativedelta(months=1)
+                timedelta = relativedelta(months=1)
+            elif reminder.frequency == 'WORKDAYS':
+                weekday = reminder.datetime.weekday() + 1
+                if weekday in (1, 2, 3, 4):
+                    timedelta = relativedelta(days=1)
+                else:
+                    timedelta = relativedelta(days=(7 - weekday + 1))
+            elif reminder.frequency == 'WEEKENDS':
+                weekday = reminder.datetime.weekday() + 1
+                if weekday == 6:
+                    timedelta = relativedelta(days=1)
+                elif weekday == 7:
+                    timedelta = relativedelta(days=7)
+                else:
+                    timedelta = relativedelta(days=(6 - weekday))
 
             reminder.datetime += timedelta
 
@@ -349,7 +372,7 @@ class UserSettings(Base):
     chat_id = Column(Integer, primary_key=True)
     language = Column(String)
     timezone = Column(String)
-    
+
     def __init__(self, chat_id, **kwargs):
         self.chat_id = chat_id
         self.language = kwargs.get('language')
@@ -362,7 +385,8 @@ class UserSettings(Base):
     def set_user_settings(engine, chat_id, **kwargs):
         session = get_session(engine)
 
-        user_settings = session.query(UserSettings).filter_by(chat_id=chat_id).first()
+        user_settings = session.query(
+            UserSettings).filter_by(chat_id=chat_id).first()
         if user_settings is None:
             user_settings = UserSettings(chat_id=chat_id)
             session.add(user_settings)
@@ -384,13 +408,14 @@ class UserSettings(Base):
     @staticmethod
     def get_user_settings(engine, chat_id, settings_name):
         session = get_session(engine)
-        user_settings = session.query(UserSettings).filter_by(chat_id=chat_id).first()
+        user_settings = session.query(
+            UserSettings).filter_by(chat_id=chat_id).first()
         session.close()
 
         value = None
         if user_settings is not None:
             value = getattr(user_settings, settings_name)
-        
+
         if value is None:
             value = UserSettings.get_default_settings(settings_name)
 
@@ -435,11 +460,11 @@ def change_timezone(datetime, timezone1, timezone2):
 
 def process_date(date, timezone):
 
-    #Тут таймзоун вообще не уместен!
+    # Тут таймзоун вообще не уместен!
 
     res_date = None
     now = get_local_time(datetime.datetime.utcnow(), timezone)
-    today = datetime.datetime(now.year, now.month, now.day)    
+    today = datetime.datetime(now.year, now.month, now.day)
 
     if type(date) == str:
         date = date.lower()
@@ -448,11 +473,11 @@ def process_date(date, timezone):
         elif date == 'tomorrow':
             res_date = today + relativedelta(days=1)
         elif date == 'aftertomorrow':
-            res_date = today + relativedelta(days=2)   
+            res_date = today + relativedelta(days=2)
     else:
         if date >= today:
             res_date = date
-        
+
     return res_date
 
 
@@ -461,12 +486,12 @@ def process_time(time_str):
     time = time.split(':')
     if len(time) == 1:
         time = time[0].split(' ')
-    
+
     minutes = 0
     hours = 0
     try:
         hours = int(time[0])
-        if len(time) > 1: 
+        if len(time) > 1:
             minutes = int(time[1])
     except:
         return None
